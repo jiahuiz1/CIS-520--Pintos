@@ -242,45 +242,6 @@ thread_unblock (struct thread *t)
   intr_set_level (old_level);
 }
 
-/* modified */
-void
-wait (semaphore *S)
-{
-  struct thread *cur_thread = thread_current();
-  if (S->count > 0)
-  {
-    S->count --;
-  }
-  else if (cur_thread->status != THREAD_BLOCKED)
-  {
-    list_push_back(&S->queue, &cur_thread->elem);
-    thread_block();
-  }
-}
-
-void
-signal (semaphore *S)
-{
-  if (s->count <= 0 && ! list_empty (&s->queue))
-  {
-    //remove the thread from the queue
-    struct list_elem *temp1, *temp2 = list_begin (&s->queue);
-
-    while (temp2 != list_end (&s->queue))
-    {
-      struct thread *t = list_entry (temp2, struct thread, allelem);
-      thread_unblock(t);
-      temp1 = temp2;
-      temp2 = list_next (temp2);
-      list_remove (temp1);
-    }    
-  }
-  else
-  {
-    s->count++;
-  }
-}
-
 /* Returns the name of the running thread. */
 const char *
 thread_name (void) 
