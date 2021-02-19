@@ -97,13 +97,9 @@ timer_sleep (int64_t ticks)
   int64_t start = timer_ticks ();
 
   ASSERT (intr_get_level () == INTR_ON);
-  S->count = 0;
-  S->queue = queue_list;
+  
   while (timer_elapsed (start) < ticks) 
-   {//thread_yield ();
-    Wait(s);
-   }
-   Signal(s);
+    thread_yield ();
 }
 
 /* Sleeps for approximately MS milliseconds.  Interrupts must be
