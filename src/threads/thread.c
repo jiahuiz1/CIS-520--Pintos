@@ -28,6 +28,9 @@ static struct list ready_list;
    when they are first scheduled and removed when they exit. */
 static struct list all_list;
 
+/*modified*/
+static struct list sleeping_list;
+
 /* Idle thread. */
 static struct thread *idle_thread;
 
@@ -239,6 +242,24 @@ thread_unblock (struct thread *t)
   ASSERT (t->status == THREAD_BLOCKED);
   list_push_back (&ready_list, &t->elem);
   t->status = THREAD_READY;
+  intr_set_level (old_level);
+}
+
+/*modified*/
+void
+thread_sleep (int64_t ticks)
+{
+  struct thread *cur_thread = thread_current();
+  int64_t start = timer_ticks ();
+  enum intr_level old_level;
+  old_level = intr_disable();
+  
+  if(cur_thread != idle_thread)
+  {
+    list_push_back (&sleeping_list, &cur_thread->elem);
+    cur_thread->sleeping_time = start + ticks;
+    thread_block();
+  }
   intr_set_level (old_level);
 }
 
@@ -555,6 +576,26 @@ schedule (void)
   struct thread *cur = running_thread ();
   struct thread *next = next_thread_to_run ();
   struct thread *prev = NULL;
+  
+  /*modified*/
+  struct list_elem *temp1, *temp2 = list_begin(&sleeping_list);
+  int64_t cur_t = timer_ticks();
+  
+  while (temp2 != list_end(&sleeping_list))
+  {
+     struct thread *t = list_entry(temp2, struct thread, allelem);
+     if(cur_t >= t->sleeping_time)
+     {
+        thread_unblock(t);
+        temp1 = temp2;
+        temp2 = list_next(temp2);
+        list_remove(temp1);
+     }
+     else
+     {
+        temp2 = list_next(temp2);
+     }
+  }
 
   ASSERT (intr_get_level () == INTR_OFF);
   ASSERT (cur->status != THREAD_RUNNING);
