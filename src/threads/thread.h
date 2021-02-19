@@ -138,12 +138,5 @@ void thread_set_nice (int);
 int thread_get_recent_cpu (void);
 int thread_get_load_avg (void);
 
-/* modified */
-typedef struct{
-  int count;
-  struct list queue;
-} semaphore;
-void Wait (semaphore*);
-void Signal (semaphore*);
 
 #endif /* threads/thread.h */
