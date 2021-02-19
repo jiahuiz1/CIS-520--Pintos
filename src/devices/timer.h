@@ -26,10 +26,4 @@ void timer_ndelay (int64_t nanoseconds);
 
 void timer_print_stats (void);
 
-/* modified */
-typedef struct{
-  int count;
-  struct list queue;
-} semaphore;
-
 #endif /* devices/timer.h */
