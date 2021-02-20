@@ -28,9 +28,6 @@ static struct list ready_list;
    when they are first scheduled and removed when they exit. */
 static struct list all_list;
 
-/*modified*/
-static struct list sleeping_list;
-
 /* Idle thread. */
 static struct thread *idle_thread;
 
@@ -240,28 +237,11 @@ thread_unblock (struct thread *t)
 
   old_level = intr_disable ();
   ASSERT (t->status == THREAD_BLOCKED);
-  list_push_back (&ready_list, &t->elem);
+  list_insert_ordered (&ready_list, &t->elem, (list_less_func *) &cmp_priority, NULL);/*modified*/
   t->status = THREAD_READY;
   intr_set_level (old_level);
 }
 
-/*modified*/
-void
-thread_sleep (int64_t ticks)
-{
-  struct thread *cur_thread = thread_current();
-  int64_t start = timer_ticks ();
-  enum intr_level old_level;
-  old_level = intr_disable();
-  
-  if(cur_thread != idle_thread)
-  {
-    list_push_back (&sleeping_list, &cur_thread->elem);
-    cur_thread->sleeping_time = start + ticks;
-    thread_block();
-  }
-  intr_set_level (old_level);
-}
 
 /* Returns the name of the running thread. */
 const char *
@@ -329,10 +309,17 @@ thread_yield (void)
 
   old_level = intr_disable ();
   if (cur != idle_thread) 
-    list_push_back (&ready_list, &cur->elem);
+    list_insert_ordered (&ready_list, &cur->elem, (list_less_func *) &cmp_priority, NULL); /*modified*/
   cur->status = THREAD_READY;
   schedule ();
   intr_set_level (old_level);
+}
+
+/*modified*/
+bool
+cmp_priority (const struct list_elem *t1, const struct list_elem *t2, void *aux UNUSED)
+{
+   return list_entry(t1, struct thread, elem)->priority > list_entry(t2, struct thread, elem)->priority;
 }
 
 /* Invoke function 'func' on all threads, passing along 'aux'.
@@ -396,7 +383,7 @@ thread_get_recent_cpu (void)
   /* Not yet implemented. */
   return 0;
 }
-
+
 /* Idle thread.  Executes when no other thread is ready to run.
 
    The idle thread is initially put on the ready list by
@@ -445,7 +432,7 @@ kernel_thread (thread_func *function, void *aux)
   function (aux);       /* Execute the thread function. */
   thread_exit ();       /* If function() returns, kill the thread. */
 }
-
+
 /* Returns the running thread. */
 struct thread *
 running_thread (void) 
@@ -486,7 +473,7 @@ init_thread (struct thread *t, const char *name, int priority)
   t->magic = THREAD_MAGIC;
 
   old_level = intr_disable ();
-  list_push_back (&all_list, &t->allelem);
+  list_insert_ordered (&all_list, &t->allelem, (list_less_fuc *) &cmp_priority, NULL);
   intr_set_level (old_level);
 }
 
@@ -576,26 +563,6 @@ schedule (void)
   struct thread *cur = running_thread ();
   struct thread *next = next_thread_to_run ();
   struct thread *prev = NULL;
-  
-  /*modified*/
-  struct list_elem *temp1, *temp2 = list_begin(&sleeping_list);
-  int64_t cur_t = timer_ticks();
-  
-  while (temp2 != list_end(&sleeping_list))
-  {
-     struct thread *t = list_entry(temp2, struct thread, allelem);
-     if(cur_t >= t->sleeping_time)
-     {
-        thread_unblock(t);
-        temp1 = temp2;
-        temp2 = list_next(temp2);
-        list_remove(temp1);
-     }
-     else
-     {
-        temp2 = list_next(temp2);
-     }
-  }
 
   ASSERT (intr_get_level () == INTR_OFF);
   ASSERT (cur->status != THREAD_RUNNING);
@@ -619,7 +586,7 @@ allocate_tid (void)
 
   return tid;
 }
-
+
 /* Offset of `stack' member within `struct thread'.
    Used by switch.S, which can't figure it out on its own. */
 uint32_t thread_stack_ofs = offsetof (struct thread, stack);
