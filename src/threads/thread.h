@@ -95,6 +95,11 @@ struct thread
   
     /*modified*/
     int64_t sleeping_time;
+  
+    /*modified*/
+    int base_priority; 
+    struct list locks; /*locks that the thread is holding*/
+    struct lock *lock_waiting; /*lock that the thread is waiting for*/
 
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
